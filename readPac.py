@@ -31,6 +31,7 @@
 
 
 from sys import argv
+from optparse import OptionParser
 import string
 import re
 
@@ -568,13 +569,18 @@ def getPacParagraph(index, real_bytes, codePage):
 
 
 def main():
-    subtitle_file = argv[1]
-    if len(argv) > 2:
-        codePage = argv[2]
+    usage = "usage: python readPac.py [options] pac_file"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-e", "--encoding", dest='codePage',
+                      help="encoding: latin, thai, chinese, cyrillic")
+    (options, args) = parser.parse_args()
+    subtitle_file = args[0]
+    if options.codePage:
+        codePage = options.codePage
         paragraphs = loadSubtitle(subtitle_file, codePage)
         for par in paragraphs:
             print par
-
+    
     else:
         print 'Auto-detect encoding'
 
@@ -592,7 +598,6 @@ def main():
             exit('Thai: True')
         else:
             print 'Thai: False'
-        
         
         # Try Latin:
         #paragraphs = loadSubtitle(subtitle_file, 'latin')
