@@ -3,6 +3,15 @@ pypacc
 
 A python utility to read the contents of a PAC Closed Caption (subtitle) file
 
+usage:
+
+    $ python readPac.py pac_file [encoding]
+
+encoding: can be latin, thai, chinese, or cyrillic
+
+If not encoding is provided, the program will attempt to determine the proper
+character set.
+
 
 Author(s)
 =========
@@ -11,7 +20,7 @@ Author(s)
     - ported portions of code from C# to python
 
 - Nikolaj Olsson
-    - wrote the software this project is based on
+    - wrote the PAC decoding logic
 
 
 Information
