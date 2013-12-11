@@ -1,19 +1,19 @@
 pypacc
 ======
 
-A Python utility to read the contents of a PAC Closed Caption (subtitle) file
+A Python utility to read the contents of a PAC Closed Caption (subtitle) file.
 
 
 Usage
 =====
 
-Takes a pac file as an argument, with specific encoding as optional argument.
+Takes a PAC file as an argument with specific encoding as an optional argument.
 
     $ python readPac.py pac_file [encoding]
 
-encoding: can be latin, thai, chinese, or cyrillic
+encoding: latin, thai, chinese, cyrillic
 
-If not encoding is provided, the program will attempt to determine the proper
+If no encoding is provided, the program will attempt to determine the proper
 character set.
 
 
@@ -21,7 +21,8 @@ Author(s)
 =========
 
 - Ethan Hart
-    - ported portions of code from C# to python
+    - ported PAC decoding logic from C# to Python
+    - wrote auto-dection/verification steps, rest of code
 
 - Nikolaj Olsson
     - wrote the PAC decoding logic
@@ -32,9 +33,9 @@ Information
 
 This script will read the contents of a PAC subtitle file and can output
 timing information and text. It does not retain alignment, justification, and
-other formatting components. As of now, this converter works with Latin
-(iso-8859-1), Chinese (big5), Cyrillic (iso-8859-5), and Thai (cp874) character
-sets. This program currently requires the user to specify the character encoding.
+other formatting information. As of now, this converter works with PAC files
+encoded using Latin (iso-8859-1), Chinese (big5), Cyrillic (iso-8859-5), and
+Thai (cp874) character sets.
 
 The PAC format was developed my Screen Electronics.
 This parser is based on code written by Nikolaj Olsson under the GNU General
