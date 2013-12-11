@@ -337,12 +337,12 @@ def loadSubtitle(subtitle_file, codePage):
 
 
 def normalizeText(text):
-    text = text.replace('çs', 'š')
-    text = text.replace('çS', 'Š')
-    text = text.replace('çz', 'ž')
-    text = text.replace('çZ', 'Ž')
-    text = text.replace('çc', 'č')
-    text = text.replace('çC', 'Č')
+    rep = {'çs': 'š', 'çS': 'Š', 'çz': 'ž',
+           'çZ': 'Ž', 'çc': 'č', 'çC': 'Č',
+           '€': '', '，': '', '？': '', '…': ''}
+    rep = dict((re.escape(k), v) for k, v in rep.iteritems())
+    pattern = re.compile("|".join(rep.keys()))
+    text = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
 
     return text
 
@@ -411,46 +411,60 @@ def getCyrillicString(encoding, byte_list, index):
         return b
 
 
-def isTarget(correct, paragraphs):
-    if float(correct) / len(paragraphs) > 0.9:
+def isTarget(correct, paragraphs, min_thresh):
+    if float(correct) / paragraphs > min_thresh:
         return True
     else:
         return False
 
 
-def isThai(paragraphs):
+def isEncoding(paragraphs, lang):
+    if lang == 'chinese':
+        block = {'start': u'\u4e00', 'end': u'\u9fff'}
+        len_thresh = 3
+    elif lang == 'thai':
+        block = {'start': u'\u0e01', 'end': u'\u0e5b'}
+        len_thresh = 10
+
     correct = 0
     for entry in paragraphs:
         text = entry.text
+        orig = text
 
         # Remove punctuation, numbers, euro, and space from text
-        text = text.replace('€', '')
-        removables = string.punctuation + string.digits + ' '
+        removables = string.punctuation + string.digits
         remove_punctuation_map = dict((ord(char), None) for char in (removables))
         text = ''.join([text.decode('utf-8').translate(remove_punctuation_map)])
-        
+        text = text.replace(' ', '')
+
         # Extract only thai characters from text
-        thai_chars = ''.join(c for c in text if u'\u0e01' <= c <= u'\u0e5b')
+        chars = ''.join(c for c in text if block['start'] <= c <= block['end'])
         #print len(text), text
         #print len(thai_chars), thai_chars
 
-        ratio = float(len(thai_chars)) / float(len(text)) # percentage of thai chars
-
-        if len(text) < 10:
+        ratio = float(len(chars)) / float(len(text)) # percentage of thai chars
+        #print ratio
+        #print len(text), text.encode('utf-8')
+        if len(text) < len_thresh:
             if ratio != 1.0:
-                isThai = False
+                #print 'Orig2: ', text.encode('utf-8')
+                #print 'Char2: ', chars.encode('utf-8')
+                isLang = False
             else:
-                isThai = True
+                isLang = True
         else:
             if ratio >= 0.90:
-                isThai = True
+                isLang = True
             else:
-                isThai = False
+                #print 'Orig: ', text.encode('utf-8')
+                #print 'Char: ', chars.encode('utf-8')
+                isLang = False
 
-        if isThai:
+        if isLang:
             correct += 1
 
-    return isTarget(correct, paragraphs)
+    #print correct, len(paragraphs)
+    return isTarget(correct, len(paragraphs), 0.9)
 
 
 def getPacParagraph(index, real_bytes, codePage):
@@ -564,16 +578,26 @@ def main():
     else:
         print 'Auto-detect encoding'
 
+        # Try Thai/Chinese
+        paragraphs = loadSubtitle(subtitle_file, 'thai')
+        
+        # Check Chinese first. Chinese doesn't require codePage to be specified
+        isZH = isEncoding(paragraphs, 'chinese')
+        if isZH:
+            exit('Chinese: True')
+        else:
+            print 'Chinese: False'
+        isThai = isEncoding(paragraphs, 'thai')
+        if isThai:
+            exit('Thai: True')
+        else:
+            print 'Thai: False'
+        
+        
         # Try Latin:
         #paragraphs = loadSubtitle(subtitle_file, 'latin')
-
-        # Check Chinese first, as Chinese does required codePage to be specified
-        #print 'Chinese: ', isChinese(paragraphs)
         #isLatin(paragraphs)
 
-        # Try Thai
-        paragraphs = loadSubtitle(subtitle_file, 'thai')
-        print 'Thai: ', isThai(paragraphs)
 
 
 if __name__ == "__main__":
