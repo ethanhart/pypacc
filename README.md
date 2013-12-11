@@ -1,9 +1,13 @@
 pypacc
 ======
 
-A python utility to read the contents of a PAC Closed Caption (subtitle) file
+A Python utility to read the contents of a PAC Closed Caption (subtitle) file
 
-usage:
+
+Usage
+=====
+
+Takes a pac file as an argument, with specific encoding as optional argument.
 
     $ python readPac.py pac_file [encoding]
 
@@ -35,17 +39,22 @@ sets. This program currently requires the user to specify the character encoding
 The PAC format was developed my Screen Electronics.
 This parser is based on code written by Nikolaj Olsson under the GNU General
 Public License. I have simply ported the PAC file parsing components from C#
-to Python for my purposes. Please check out and support his project over at
+to Python. Please check out and support his project over at
 http://www.nikse.dk/SubtitleEdit/
 
 
 TO-DO
 =====
 
-- Add heuristics to determine if an encoding was successful or not
-    - This will be used so the user does not need to know apriori what the
-      encoding of the file is
+- [ ]Add heuristics to determine if an encoding was successful (needed if user
+    doesn't know apriori what the encoding of the file is)
+    - [x] Thai
+    - [x] Chinese
+    - [ ] Latin
+    - [ ] Cyrillic
 
-- Implement parallel decoding in mulitple encodings
+- [ ] Implement parallel decoding in mulitple encodings
 
-- Add Arabic and Hebrew support
+- [ ] Add additional language/encodings support
+    - [ ] Arabic
+    - [ ] Hebrew
