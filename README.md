@@ -43,27 +43,3 @@ This parser is based on code written by Nikolaj Olsson under the GNU General
 Public License. I have simply ported the PAC file parsing components from C#
 to Python. Please check out and support his project over at
 http://www.nikse.dk/SubtitleEdit/
-
-
-TO-DO
-=====
-
-- [X] Add heuristics to determine if an encoding was successful (needed if user
-    doesn't know apriori what the encoding of the file is)
-    - [X] Thai
-    - [X] Chinese
-    - [X] Latin
-    - [X] Cyrillic
-
-- [ ] DRY-ify auto-detect section
-
-- [ ] Add option for text only
-
-- [ ] Implement parallel decoding in mulitple encodings
-
-- [ ] Add additional language/encodings support
-    - [ ] Arabic
-    - [ ] Hebrew
-    - [ ] Greek
-    - [X] UTF-8
-
