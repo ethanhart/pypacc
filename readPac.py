@@ -11,7 +11,7 @@
 # likely only valid for FPC files (a variation of the PAC format which uses
 # Unicode as a standard).
 
-# The PAC format was developed my Screen Electronics.
+# The PAC format was developed by Screen Electronics.
 # This parser is based on code written by Nikolaj Olsson under the GNU General
 # Public License. I have simply ported the PAC file parsing components from C#
 # to Python for my purposes. Please check out and support his project over at
