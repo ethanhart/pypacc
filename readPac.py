@@ -4,10 +4,12 @@
 # Date: 2013-12-08
 # Authors: Ethan Hart/ Nikolaj Olsson
 
-# This script will read the contents of a PAC subtitle file and can output
+# This script will read the contents of a PAC/FPC subtitle file and can output
 # timing information and text. It does not retain alignment, justification, and
 # other formatting components. As of now, this converter works with Latin,
-# Chinese (big5), Cyrillic, and Thai character sets.
+# Chinese (big5), Cyrillic, Thai, and UTF-8 character sets. Note: UTF-8 is
+# likely only valid for FPC files (a variation of the PAC format which uses
+# Unicode as a standard).
 
 # The PAC format was developed my Screen Electronics.
 # This parser is based on code written by Nikolaj Olsson under the GNU General
@@ -34,7 +36,6 @@ from sys import argv
 from optparse import OptionParser
 import string
 import re
-
 
 CyrillicLetters =   [" ",  # 0x20
                     "!",  # 0x21
@@ -312,14 +313,14 @@ class TimeCode:
 
 
 def loadSubtitle(subtitle_file, codePage):
+    """Reads in PAC file as binary data,
+    extracts text and timing information"""
+
     with open(subtitle_file, 'rb') as inf:
         block = inf.read()  # read(1024)
-        hex_bytes = []
         real_bytes = []
         for ch in block:
-            code = hex(ord(ch))
             real_bytes.append(ch)
-            hex_bytes.append(code)
 
     index = 0
     all_pars = []
@@ -338,6 +339,8 @@ def loadSubtitle(subtitle_file, codePage):
 
 
 def normalizeText(text):
+    """Some simple text normalization"""
+
     rep = {'çs': 'š', 'çS': 'Š', 'çz': 'ž',
            'çZ': 'Ž', 'çc': 'č', 'çC': 'Č',
            '€': '', '，': '', '？': '', '…': ''}
@@ -384,8 +387,27 @@ def getString(encoding, byte_list, index):
     byte = byte_list[index]
     try:
         char = ''.join(byte).decode(encoding)
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as e:
         char = ''
+    return char.encode('utf-8')
+
+
+def getUTF8String(encoding, byte_list, index):
+    """Decode a byte or sequence of bytes (up to 4) with utf-8,
+    return a utf-8 string"""
+
+    for idx in range(4):
+        byte = byte_list[index: index + idx]
+        char = ''
+        try:
+            char = ''.join(byte).decode(encoding)
+        except UnicodeDecodeError as e:
+            pass
+        if char.encode('utf-8') == '' or char.encode('utf-8') == '﻿':
+            pass
+        elif char != '':
+            return char.encode('utf-8')
+
     return char.encode('utf-8')
 
 
@@ -426,45 +448,60 @@ def isEncoding(paragraphs, lang):
     elif lang == 'thai':
         block = {'start': u'\u0e01', 'end': u'\u0e5b'}
         len_thresh = 10
+    elif lang == 'cyrillic':
+        block = {'start': u'\u0400', 'end': u'\u04ff'}
+        len_thresh = 10
+    elif lang == 'latin':
+        block = {'start': u'\u0000', 'end': u'\u007f'}  # Latin-1 char set
+        len_thresh = 10
+
 
     correct = 0
     for entry in paragraphs:
         text = entry.text
-        orig = text
 
-        # Remove punctuation, numbers, euro, and space from text
-        removables = string.punctuation + string.digits
-        remove_punctuation_map = dict((ord(char), None) for char in (removables))
-        text = ''.join([text.decode('utf-8').translate(remove_punctuation_map)])
-        text = text.replace(' ', '')
+        try:
+            # Remove punctuation, numbers, euro, and space from text
+            removables = string.punctuation + string.digits
+            remove_punctuation_map = dict((ord(char), None) for char in (removables))
+            text = ''.join([text.decode('utf-8').translate(remove_punctuation_map)])
+            text = text.replace(' ', '')
 
-        # Extract only thai characters from text
-        chars = ''.join(c for c in text if block['start'] <= c <= block['end'])
-        #print len(text), text
-        #print len(thai_chars), thai_chars
+            # Extract only specific characters from text
+            if lang == 'latin':
+                chars = ''.join(c for c in text if u'{0}'.format(c).isalpha())
+                
+                # Assume that a valid latin string will contain *some* latin_1
+                # chars, so if no latin_1 chars are found, assume invalid string
+                latin_1 = ''.join(c for c in text if block['start'] <= c <= block['end'])
+                if len(latin_1) == 0:
+                    chars = ''
+            else:  # All encodings except latin
+                chars = ''.join(c for c in text if block['start'] <= c <= block['end'])
 
-        ratio = float(len(chars)) / float(len(text)) # percentage of thai chars
-        #print ratio
-        #print len(text), text.encode('utf-8')
-        if len(text) < len_thresh:
-            if ratio != 1.0:
-                #print 'Orig2: ', text.encode('utf-8')
-                #print 'Char2: ', chars.encode('utf-8')
-                isLang = False
+            ratio = float(len(chars)) / float(len(text))  # ratio of chars in unicode block
+            
+            if len(text) < len_thresh:  # For short text, must have 100% accuracy
+                if ratio == 1.0:
+                    isLang = True
+                else:
+                    isLang = False
+                    #print 'Orig2: ', text.encode('utf-8')  # for debugging
+                    #print 'Char2: ', chars.encode('utf-8')  # for debugging
             else:
-                isLang = True
-        else:
-            if ratio >= 0.90:
-                isLang = True
-            else:
-                #print 'Orig: ', text.encode('utf-8')
-                #print 'Char: ', chars.encode('utf-8')
-                isLang = False
+                if ratio >= 0.90:
+                    isLang = True
+                else:
+                    #print 'Orig: ', text.encode('utf-8')
+                    #print 'Char: ', chars.encode('utf-8')
+                    isLang = False
 
-        if isLang:
-            correct += 1
+            if isLang:
+                correct += 1
 
-    #print correct, len(paragraphs)
+        except UnicodeDecodeError as e:  # Typically problems with 0xe7
+            pass
+                
     return isTarget(correct, len(paragraphs), 0.9)
 
 
@@ -540,6 +577,7 @@ def getPacParagraph(index, real_bytes, codePage):
             index += 2
 
         elif codePage == 'latin':
+            #latin_char = getString('utf-8', real_bytes, index)
             latin_char = getString('iso-8859-1', real_bytes, index)
             string_buffer += latin_char
         elif codePage == 'arabic':
@@ -554,9 +592,9 @@ def getPacParagraph(index, real_bytes, codePage):
             pass
         elif codePage == 'thai':
             string_buffer += getString('cp874', real_bytes, index)
+        elif codePage == 'utf-8' or codePage == 'utf8':
+            string_buffer += getUTF8String('utf-8', real_bytes, index)
         else:
-            # Get encoding
-            #string_buffer += 'char'
             pass
 
         index += 1
@@ -565,6 +603,7 @@ def getPacParagraph(index, real_bytes, codePage):
         return None
 
     p.text = normalizeText(string_buffer)
+    #p.text = string_buffer
     return p
 
 
@@ -572,15 +611,14 @@ def main():
     usage = "usage: python readPac.py [options] pac_file"
     parser = OptionParser(usage=usage)
     parser.add_option("-e", "--encoding", dest='codePage',
-                      help="encoding: latin, thai, chinese, cyrillic")
+                      help="encoding: latin, thai, chinese, cyrillic, utf-8")
     (options, args) = parser.parse_args()
     subtitle_file = args[0]
     if options.codePage:
-        codePage = options.codePage
+        codePage = options.codePage.lower()
         paragraphs = loadSubtitle(subtitle_file, codePage)
         for par in paragraphs:
             print par
-    
     else:
         print 'Auto-detect encoding'
 
@@ -598,11 +636,26 @@ def main():
             exit('Thai: True')
         else:
             print 'Thai: False'
+       
+        # Try Cyrillic
+        paragraphs = loadSubtitle(subtitle_file, 'cyrillic')
+        isCyr = isEncoding(paragraphs, 'cyrillic')
+        if isCyr:
+            exit('Cyrillic: True')
+        else:
+            print 'Cyrillic: False'
         
         # Try Latin:
-        #paragraphs = loadSubtitle(subtitle_file, 'latin')
-        #isLatin(paragraphs)
+        paragraphs = loadSubtitle(subtitle_file, 'latin')
+        isLatin = isEncoding(paragraphs, 'latin')
+        if isLatin:
+            exit('Latin: True')
+        else:
+            print 'Latin: False'
 
+        # Try UTF-8 as last resort:
+        paragraphs = loadSubtitle(subtitle_file, 'utf-8')
+        print 'Defaulting: UTF-8'
 
 
 if __name__ == "__main__":
