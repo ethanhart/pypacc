@@ -607,55 +607,50 @@ def getPacParagraph(index, real_bytes, codePage):
     return p
 
 
+def writeOut(paragraphs, textOnly):
+    for line in paragraphs:
+        if textOnly:
+            print line.text
+        else:
+            print line
+    exit()
+
+
 def main():
     usage = "usage: python readPac.py [options] pac_file"
     parser = OptionParser(usage=usage)
-    parser.add_option("-e", "--encoding", dest='codePage',
+    parser.add_option("-e", "--encoding", dest="codePage",
                       help="encoding: latin, thai, chinese, cyrillic, utf-8")
+    parser.add_option("-t", "--text", action="store_true", dest="textOnly",
+                      help="Write out text only")
     (options, args) = parser.parse_args()
     subtitle_file = args[0]
+    file_type = subtitle_file[-3:]
     if options.codePage:
         codePage = options.codePage.lower()
         paragraphs = loadSubtitle(subtitle_file, codePage)
-        for par in paragraphs:
-            print par
+        writeOut(paragraphs, options.textOnly)
+    elif file_type.lower() == 'fpc':
+        # Assume fpc file uses utf-8 encoding
+        paragraphs = loadSubtitle(subtitle_file, 'utf-8')
+        writeOut(paragraphs, options.textOnly)
     else:
-        print 'Auto-detect encoding'
+        # Auto-detecting
+        encodings = ['thai', 'cyrillic', 'latin']  # DO NOT CHANGE THIS ORDER 
 
-        # Try Thai/Chinese
-        paragraphs = loadSubtitle(subtitle_file, 'thai')
-        
-        # Check Chinese first. Chinese doesn't require codePage to be specified
-        isZH = isEncoding(paragraphs, 'chinese')
-        if isZH:
-            exit('Chinese: True')
-        else:
-            print 'Chinese: False'
-        isThai = isEncoding(paragraphs, 'thai')
-        if isThai:
-            exit('Thai: True')
-        else:
-            print 'Thai: False'
-       
-        # Try Cyrillic
-        paragraphs = loadSubtitle(subtitle_file, 'cyrillic')
-        isCyr = isEncoding(paragraphs, 'cyrillic')
-        if isCyr:
-            exit('Cyrillic: True')
-        else:
-            print 'Cyrillic: False'
-        
-        # Try Latin:
-        paragraphs = loadSubtitle(subtitle_file, 'latin')
-        isLatin = isEncoding(paragraphs, 'latin')
-        if isLatin:
-            exit('Latin: True')
-        else:
-            print 'Latin: False'
+        attempts = 0
+        for code in encodings:
+            paragraphs = loadSubtitle(subtitle_file, code)
+            if attempts == 0:
+                if isEncoding(paragraphs, 'chinese'):
+                    writeOut(paragraphs, options.textOnly)
+            if isEncoding(paragraphs, code):
+                writeOut(paragraphs, options.textOnly)
+            attempts += 1
 
         # Try UTF-8 as last resort:
         paragraphs = loadSubtitle(subtitle_file, 'utf-8')
-        print 'Defaulting: UTF-8'
+        writeOut(paragraphs, options.textOnly)
 
 
 if __name__ == "__main__":
