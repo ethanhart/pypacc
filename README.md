@@ -9,9 +9,13 @@ Usage
 
 Takes a PAC/FPC file as an argument with specific encoding as an optional argument.
 
-    $ python readPac.py pac_file [encoding]
+    $ python readPac.py [options] pac_file
 
-encoding: latin, thai, chinese, cyrillic, utf-8
+Options:
+    -h, --help      show this help message and exit
+    -e CODEPAGE, --encoding=CODEPAGE
+                    encoding: latin, thai, chinese, cyrillic, utf-8
+    -t, --text      write out text only
 
 If no encoding is provided, the program will attempt to determine the proper
 character set.
