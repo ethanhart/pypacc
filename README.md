@@ -9,9 +9,9 @@ Usage
 
 Takes a PAC/FPC file as an argument with specific encoding as an optional argument.
 
-    $ python readPac.py [options] pac_file
-
 ```
+Usage: python readPac.py [options] pac_file
+
 Options:
     -h, --help      show this help message and exit
     -e CODEPAGE, --encoding=CODEPAGE
