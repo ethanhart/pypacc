@@ -455,7 +455,6 @@ def isEncoding(paragraphs, lang):
         block = {'start': u'\u0000', 'end': u'\u007f'}  # Latin-1 char set
         len_thresh = 10
 
-
     correct = 0
     for entry in paragraphs:
         text = entry.text
@@ -463,14 +462,14 @@ def isEncoding(paragraphs, lang):
         try:
             # Remove punctuation, numbers, euro, and space from text
             removables = string.punctuation + string.digits
-            remove_punctuation_map = dict((ord(char), None) for char in (removables))
-            text = ''.join([text.decode('utf-8').translate(remove_punctuation_map)])
+            remove_punct_map = dict((ord(char), None) for char in (removables))
+            text = ''.join([text.decode('utf-8').translate(remove_punct_map)])
             text = text.replace(' ', '')
 
             # Extract only specific characters from text
             if lang == 'latin':
                 chars = ''.join(c for c in text if u'{0}'.format(c).isalpha())
-                
+
                 # Assume that a valid latin string will contain *some* latin_1
                 # chars, so if no latin_1 chars are found, assume invalid string
                 latin_1 = ''.join(c for c in text if block['start'] <= c <= block['end'])
@@ -479,9 +478,10 @@ def isEncoding(paragraphs, lang):
             else:  # All encodings except latin
                 chars = ''.join(c for c in text if block['start'] <= c <= block['end'])
 
-            ratio = float(len(chars)) / float(len(text))  # ratio of chars in unicode block
-            
-            if len(text) < len_thresh:  # For short text, must have 100% accuracy
+            # Ratio of chars in unicode block
+            ratio = float(len(chars)) / float(len(text))
+
+            if len(text) < len_thresh:  # For short text, must be 100% accurate
                 if ratio == 1.0:
                     isLang = True
                 else:
@@ -501,7 +501,7 @@ def isEncoding(paragraphs, lang):
 
         except UnicodeDecodeError as e:  # Typically problems with 0xe7
             pass
-                
+
     return isTarget(correct, len(paragraphs), 0.9)
 
 
@@ -514,9 +514,13 @@ def getPacParagraph(index, real_bytes, codePage):
         index += 1
         if index + 20 >= len(real_bytes):
             return None
-        if real_bytes[index] == '\xfe' and real_bytes[index - 15] == '\x60' or real_bytes[index - 15] == '\x61':
+        if real_bytes[index] == '\xfe' and \
+           real_bytes[index - 15] == '\x60' or \
+           real_bytes[index - 15] == '\x61':
             con = False
-        if real_bytes[index] == '\xfe' and real_bytes[index - 12] == '\x60' or real_bytes[index - 12] == '\x61':
+        if real_bytes[index] == '\xfe' and \
+           real_bytes[index - 12] == '\x60' or \
+           real_bytes[index - 12] == '\x61':
             con = False
 
     feIndex = index
@@ -616,6 +620,24 @@ def writeOut(paragraphs, textOnly):
     exit()
 
 
+def autoDetect(subtitle_file):
+    encodings = ['thai', 'cyrillic', 'latin']  # DO NOT CHANGE THIS ORDER
+
+    attempts = 0
+    for code in encodings:
+        paragraphs = loadSubtitle(subtitle_file, code)
+        if attempts == 0:
+            if isEncoding(paragraphs, 'chinese'):
+                return paragraphs
+        if isEncoding(paragraphs, code):
+                return paragraphs
+        attempts += 1
+
+    # Try UTF-8 as last resort:
+    paragraphs = loadSubtitle(subtitle_file, 'utf-8')
+    return paragraphs
+
+
 def main():
     usage = "usage: python readPac.py [options] pac_file"
     parser = OptionParser(usage=usage)
@@ -636,20 +658,7 @@ def main():
         writeOut(paragraphs, options.textOnly)
     else:
         # Auto-detecting
-        encodings = ['thai', 'cyrillic', 'latin']  # DO NOT CHANGE THIS ORDER 
-
-        attempts = 0
-        for code in encodings:
-            paragraphs = loadSubtitle(subtitle_file, code)
-            if attempts == 0:
-                if isEncoding(paragraphs, 'chinese'):
-                    writeOut(paragraphs, options.textOnly)
-            if isEncoding(paragraphs, code):
-                writeOut(paragraphs, options.textOnly)
-            attempts += 1
-
-        # Try UTF-8 as last resort:
-        paragraphs = loadSubtitle(subtitle_file, 'utf-8')
+        paragraphs = autoDetect(subtitle_file)
         writeOut(paragraphs, options.textOnly)
 
 
