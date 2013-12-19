@@ -49,3 +49,5 @@ This parser is based on code written by Nikolaj Olsson under the GNU General
 Public License. I have simply ported the PAC file parsing components from C#
 to Python. Please check out and support his project over at
 http://www.nikse.dk/SubtitleEdit/
+
+This work is sponsered by AppTek http://www.apptek.com
