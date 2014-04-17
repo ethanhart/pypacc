@@ -36,6 +36,7 @@
 
 from optparse import OptionParser
 import string
+import sys
 import re
 
 CyrillicLetters = [" ",  # 0x20
@@ -649,8 +650,13 @@ def main():
     parser.add_option("-t", "--text", action="store_true", dest="textOnly",
                       help="Write out text only")
     (options, args) = parser.parse_args()
+    if len(args) == 0:
+        parser.print_help()
+        sys.exit(1)
+    
     subtitle_file = args[0]
     file_type = subtitle_file[-3:]
+
     if options.codePage:
         codePage = options.codePage.lower()
         paragraphs = loadSubtitle(subtitle_file, codePage)
