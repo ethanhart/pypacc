@@ -315,8 +315,10 @@ class TimeCode:
 
 
 def loadSubtitle(subtitle_file, codePage):
-    """Reads in PAC file as binary data,
-    extracts text and timing information"""
+    """
+    Reads in PAC file as binary data,
+    extracts text and timing information
+    """
 
     with open(subtitle_file, 'rb') as inf:
         block = inf.read()  # read(1024)
@@ -354,6 +356,8 @@ def normalizeText(text):
 
 
 def getTimeCode(timeCodeIndex, byte_list):
+    """Extract time code"""
+
     if timeCodeIndex > 0:
         highPart = ord(byte_list[timeCodeIndex]) + ord(byte_list[timeCodeIndex + 1]) * 256
         lowPart = ord(byte_list[timeCodeIndex + 2]) + ord(byte_list[timeCodeIndex + 3]) * 256
@@ -376,15 +380,21 @@ def getTimeCode(timeCodeIndex, byte_list):
 
 
 def decodeBig5(byte_list):
-    # Given a list of bytes (2), return big5 char
+    """
+    Given a list of bytes (2-byte sequence),
+    return big5 char
+    """
+
     zh_char = ''.join(byte_list).decode('big5')
 
     return zh_char.encode('utf-8')
 
 
 def getString(encoding, byte_list, index):
-    """Decode a single byte character w/ specified encoding,
-    return a utf-8 string"""
+    """
+    Decode a single byte character w/ specified encoding,
+    return a utf-8 string
+    """
 
     byte = byte_list[index]
     try:
@@ -395,8 +405,10 @@ def getString(encoding, byte_list, index):
 
 
 def getUTF8String(encoding, byte_list, index):
-    """Decode a byte or sequence of bytes (up to 4) with utf-8,
-    return a utf-8 string"""
+    """
+    Decode a byte or sequence of bytes (up to 4) with utf-8,
+    return a utf-8 string
+    """
 
     for idx in range(4):
         byte = byte_list[index: index + idx]
@@ -414,6 +426,8 @@ def getUTF8String(encoding, byte_list, index):
 
 
 def getCyrillicString(encoding, byte_list, index):
+    """Extract Cyrillic string from byte sequence"""
+
     b = byte_list[index]
     if b >= '\x30' and b <= '\x39':
         return b.decode('ascii').encode('utf-8')
@@ -444,6 +458,12 @@ def isTarget(correct, paragraphs, min_thresh):
 
 
 def isEncoding(paragraphs, lang):
+    """
+    Compare decoded characters with unicode characters. The decoded characters
+    should have at least a minimmum amount of 'in range' characters.
+    """
+
+    # Define unicode blocks
     if lang == 'chinese':
         block = {'start': u'\u4e00', 'end': u'\u9fff'}
         len_thresh = 3
@@ -510,6 +530,8 @@ def isEncoding(paragraphs, lang):
 
 
 def getPacParagraph(index, real_bytes, codePage):
+    """Main PAC decoding function"""
+
     while index < 15:
         index += 1
 
@@ -625,12 +647,19 @@ def writeOut(paragraphs, textOnly):
 
 
 def autoDetect(subtitle_file):
+    """
+    Automatically detect character encoding.
+    Run through various encodings and compare decoded text with unicode
+    character blocks (using isEncoding())
+    """
+
     encodings = ['thai', 'cyrillic', 'latin']  # DO NOT CHANGE THIS ORDER
 
     attempts = 0
     for code in encodings:
         paragraphs = loadSubtitle(subtitle_file, code)
         if attempts == 0:
+            # Chinese is detected regardless of specified encoding
             if isEncoding(paragraphs, 'chinese'):
                 return paragraphs
         if isEncoding(paragraphs, code):
@@ -653,7 +682,7 @@ def main():
     if len(args) == 0:
         parser.print_help()
         sys.exit(1)
-    
+
     subtitle_file = args[0]
     file_type = subtitle_file[-3:]
 
