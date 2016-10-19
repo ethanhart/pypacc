@@ -17,6 +17,8 @@ Options:
     -e CODEPAGE, --encoding=CODEPAGE
                     encoding: latin, thai, chinese, cyrillic, utf-8
     -t, --text      write out text only
+    -f, --outformat     output format (SRT)
+    -o, --outfile      file to save output to
 ```
 
 If no encoding is provided, the program will attempt to determine the proper
