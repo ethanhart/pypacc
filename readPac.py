@@ -373,7 +373,7 @@ def getTimeCode(timeCodeIndex, byte_list):
 
         milliseconds = int((1000.0 / frameRate) * frames)
 
-        return TimeCode(hours, minutes, seconds, milliseconds)
+        return TimeCode(str(hours).rjust(2,"0"), str(minutes).rjust(2,"0"), str(seconds).rjust(2,"0"), str(milliseconds).rjust(3,"0"))
 
     else:
         return TimeCode(0, 0, 0, 0)
@@ -503,6 +503,10 @@ def isEncoding(paragraphs, lang):
                 chars = ''.join(c for c in text if block['start'] <= c <= block['end'])
 
             # Ratio of chars in unicode block
+            if float(len(text)) == 0:
+                 print "Could not determine character encoding from file"
+                 sys.exit(1)
+            
             ratio = float(len(chars)) / float(len(text))
 
             if len(text) < len_thresh:  # For short text, must be 100% accurate
@@ -637,12 +641,36 @@ def getPacParagraph(index, real_bytes, codePage):
     return p
 
 
-def writeOut(paragraphs, textOnly):
+def rreplace(s, old, new, occurrence):
+    li = s.rsplit(old, occurrence)
+    return new.join(li)
+
+# From http://stackoverflow.com/questions/2556108/how-to-replace-the-last-occurence-of-an-expression-in-a-string
+
+def writeOut(paragraphs, outForm, file):
+    i = 1
+    strRtn = ""
     for line in paragraphs:
-        if textOnly:
-            print line.text
+        if outForm == "text":
+            strRtn += line.text
+            i += 1
+        elif outForm == "SRT":
+            strRtn += str(i) + "\n"
+            strRtn += rreplace(str(line.startTime),":",",",1) + " --> " + rreplace(str(line.endTime),":",",",1) + "\n"
+            strRtn += line.text + "\n"
+            strRtn += "\n"
+            i += 1
         else:
-            print line
+            strRtn += line
+            i += 1
+
+    if file:
+        target = open(file, 'w')
+        target.write(strRtn)
+        target.close()
+    else:
+        print strRtn
+
     exit()
 
 
@@ -673,31 +701,43 @@ def autoDetect(subtitle_file):
 
 def main():
     usage = "usage: python readPac.py [options] pac_file"
+    availableOutputs = ["SRT","SRT"]
     parser = OptionParser(usage=usage)
-    parser.add_option("-e", "--encoding", dest="codePage",
-                      help="encoding: latin, thai, chinese, cyrillic, utf-8")
-    parser.add_option("-t", "--text", action="store_true", dest="textOnly",
-                      help="Write out text only")
+    parser.add_option("-e", "--encoding", dest="codePage",help="encoding: latin, thai, chinese, cyrillic, utf-8")
+    parser.add_option("-t", "--text", action="store_true", dest="textOnly",help="Write out text only")
+    parser.add_option("-f", "--outformat", dest="outFormat", help="Define output format, options: SRT")
+    parser.add_option("-o", "--outfile", dest="outFile", help="Output to file, specify filename")
     (options, args) = parser.parse_args()
-    if len(args) == 0:
+    if options.outFormat.upper() not in availableOutputs:
+        print "Invalid output format: " + options.outFormat
+        parser.print_help()
+        sys.exit(2)
+    elif len(args) == 0:
         parser.print_help()
         sys.exit(1)
 
     subtitle_file = args[0]
     file_type = subtitle_file[-3:]
-
+    ###Work out encoding & Read File
     if options.codePage:
         codePage = options.codePage.lower()
         paragraphs = loadSubtitle(subtitle_file, codePage)
-        writeOut(paragraphs, options.textOnly)
     elif file_type.lower() == 'fpc':
         # Assume fpc file uses utf-8 encoding
         paragraphs = loadSubtitle(subtitle_file, 'utf-8')
-        writeOut(paragraphs, options.textOnly)
     else:
         # Auto-detecting
         paragraphs = autoDetect(subtitle_file)
-        writeOut(paragraphs, options.textOnly)
+        
+
+    ##Determine outputs
+    ##print options.outFile 
+    if options.textOnly:
+         writeOut(paragraphs,"text",options.outFile)
+    elif options.outFormat :
+        writeOut(paragraphs,options.outFormat,options.outFile)
+    else :
+        writeOut(paragraphs,"",options.outFile)
 
 
 if __name__ == "__main__":
